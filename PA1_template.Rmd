@@ -1,0 +1,103 @@
+Reproducible Research Peer Assessment 1
+========================================================
+
+### Loading and preprocessing the data
+
+1. The given data is first loaded into R.
+2. The dates are then converted into the date type for R.
+```{r load, echo = TRUE}
+data <- read.csv("activity.csv", header=TRUE)
+date_conv <- as.Date(data$date)
+```
+
+
+### What is mean total number of steps taken per day?
+
+1) Total number of steps taken per day
+```{r totalsteps, echo = TRUE}
+tapply(data$steps, format(date_conv, '%Y-%m-%d'), sum)
+```
+Note that for the missing values, they are set to zero as a default value.
+
+2) Histogram of the total number of steps taken per day
+```{r totalstepshistogram, echo = TRUE}
+total_steps <- tapply(data$steps, format(date_conv, '%Y-%m-%d'), sum)
+hist(total_steps, ylim=c(0,30), main="Histogram of Total Number of Steps Taken per Day", xlab="Total Number of Steps per Day")
+```
+
+3) Mean and median total number of steps taken per day
+```{r meanmediansteps, echo = TRUE}
+mean(total_steps, na.rm=TRUE)
+median(total_steps, na.rm=TRUE)
+```
+
+
+### What is the average daily activity pattern?
+
+1) Time series plot of average number of steps taken vs. 5-minute intervals
+```{r intervalstepplot, echo = TRUE}
+interval_steps <- tapply(data$steps, data$interval, mean, na.rm=TRUE)
+plot(unique(data$interval), interval_steps, type="l", main="Average Number of Steps vs. Minutes", xlab="Minutes (5-Minute Intervals)", ylab="Average Number of Steps per 5-Minute Interval")
+```
+
+2) Maximum number of steps for 5-minute interval
+```{r maxintervalstep, echo = TRUE}
+which.max(interval_steps)
+```
+The **835** 5-minute interval contains the maximum average number of steps.
+
+
+### Imputing missing values
+
+1) Total number of missing values
+```{r nummissingvalues, echo = TRUE}
+sum(is.na(data$steps))
+```
+
+2) Replace each missing value with the mean number of steps for a 5-minute interval; otherwise, the original values of the number of steps remain the same
+```{r replacemissingvalues, echo = TRUE}
+for (i in 1:length(data$steps)) {
+    if (is.na(data$steps[i])==TRUE) {
+        data$steps[i]=mean(interval_steps)
+    }
+}
+```
+
+3) Dataset changed after replacing all missing values
+```{r modifieddataset, echo = TRUE}
+total_mod_steps <- tapply(data$steps, format(date_conv, '%Y-%m-%d'), sum, na.rm=TRUE)
+```
+
+4) Modified histogram of the total number of steps taken per day and mean/median total number of steps taken per day after replacing missing values
+```{r modifiedresults, echo = TRUE}
+hist(total_mod_steps, ylim=c(0,40), main="Modified Histogram of Total Number of Steps Taken per Day", xlab="Total Number of Steps per Day")
+mean(total_mod_steps)
+median(total_mod_steps)
+total_mod_steps
+```
+Based on the results, the mean remains the same.  This is because I replaced the missing values with the mean number of steps for a 5-minute interval.  Also, missing values occur on an entire day, not parts of the day.  If the mean number of steps for a 5-minute interval is summed over all 5-minute intervals, it is exactly the same as the mean total number of steps.  Hence, the mean value is not affected.  Meanwhile, the median is slightly changed.  8 of the total number of steps taken per day is now the mean.  Since the mean value is the mode for the total number of steps taken per day and the mean value is very close to the median value, it makes sense for the new median value to be equal to the mean value.  If missing data exist in the dataset to get the estimate the total daily number of steps, the distribution of the histogram is affected.  If we compare the two histograms, the histogram after replacing the missing values has a taller peak in the middle distribution-wise.
+
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+1) After getting the days of the week for each given date, replacing the names of the days of the week with factor label weekday or weekend
+```{r dayofweek, echo = TRUE}
+library(lattice)
+wds <- weekdays(date_conv)
+for (i in 1:length(wds)) {
+    if (wds[i]=="Saturday" | wds[i]=="Sunday") {
+        wds[i] = "weekend"
+    }
+    else {
+        wds[i] = "weekday"
+    }
+}
+```
+
+2) Panel plot of average number of steps taken vs. 5-minute intervals for weekdays and weekends
+```{r panelplot, echo = TRUE}
+xyplot(interval_steps~unique(data$interval) | unique(factor(wds)), type="l", main="Average Number of Steps vs. Minutes for Weekdays and Weekends", xlab="Minutes (5-Minute Intervals)", ylab="Average Number of Steps per 5-Minute Interval")
+```
+
+
+
